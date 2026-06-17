@@ -2,7 +2,7 @@
 
 
 
-The base remains that of Ghost-Control by StonedModder: read a supported USB controller, translate
+The base remains StonedModder's Ghost-Control: read a supported USB controller, translate
 its input reports, create a virtual PS5 controller, then inject
 `ScePadData`.
 
@@ -11,7 +11,7 @@ The work added here mainly concerns:
 - Manba V2 support over USB;
 - Manba PC/XInput mode;
 - Manba Switch USB/dongle mode;
-- correction of the Y axis in Manba Switch mode;
+- Y-axis correction in Manba Switch mode;
 - clean behavior between the Manba and the official controller when they
   try to take the same user;
 - A few separate Bluetooth research notes, because Bluetooth is not resolved
@@ -23,7 +23,7 @@ The work added here mainly concerns:
   `Ghostcontrol-PS5-USB-Controller-Patcher`
   - https://github.com/StonedModder/Ghostcontrol-PS5-USB-Controller-Patcher
 - Manba V2 NBJr USB tests, PS5 validation, axis verification, tests
-  user change and Manba/official tests.
+  user switching and Manba/official tests.
 - PS5 SDK John tromblom 
 
 ## Folder Contents
@@ -34,7 +34,7 @@ ELF/
   GhostControl-ManbaV2-NBJr-USB-Patch.elf
 
 SOURCE MODIFIEE PAYLOAD/
-  Modified sources used to compile the final payload tested OK
+  Modified sources used to compile the final tested OK payload
 
 Launch-GhostControl-ManbaV2-NBJr.bat
 Launch-GhostControl-ManbaV2-NBJr.ps1
@@ -45,20 +45,20 @@ Launch-GhostControl-ManbaV2-NBJr.ps1
 
 - Manba V2 in PC/XInput USB mode.
 - Manba V2 in Switch USB/dongle mode.
-- Correction of the Y axis in Manba Switch mode in `payload/gc_main.c`.
-- When the Manba becomes active, the official controller is disconnected cleanly.
+- Y-axis correction in Manba Switch mode in `payload/gc_main.c`.
+- When the Manba becomes active, the official controller disconnects cleanly.
 - If the official controller is turned back on on another user, both controllers
   can remain active to play with two players.
-- If the official controller is turned back on on the same user as the Manba, the Manba VDA
-  is freed and the official controller takes control again.
+- If the official controller is turned back on on the same user as the Manba, the Manba
+  VDA is released and the official controller takes control again.
 
 ## Bluetooth Research
 
-During tests, the PS5 did see the Bluetooth part of the Manba, but it
-behaved like an accessory, not like a real usable `scePad`
-controller. The profile/user popup could sometimes open, and the console could
-show two controllers/accessories, but the Manba Bluetooth path did not give
-a stable input flow
+During tests, the PS5 could see the Bluetooth part of the Manba, but it
+behaved like an accessory, not like a real usable `scePad` controller.
+The profile/user popup could sometimes open, and the console could
+show two controllers/accessories, but the Manba Bluetooth path did not provide
+a stable input stream
 
 Points seen during the tests:
 
@@ -74,25 +74,25 @@ class=0xe0 sub=0x01 proto=0x01
 
 - This MediaTek device indicates the Bluetooth transport/adapter, not the buttons
   of the controller.
-- The Manba receiver/update mode was also seen as `1a34:f517`.
+- The receiver/update mode of the Manba was also seen as `1a34:f517`.
 - Other devices like Realtek `0x0bda:0x9210` are USB/adapter noise and
   must not be taken for a controller.
 - Over USB, the payload has a real `/dev/ugen*` device and real input reports on
   endpoint `0x81`.
-- Over Bluetooth, we did not obtain the same path of readable input reports.
+- Over Bluetooth, we did not obtain the same readable input report path.
 - The official controller becomes a real controller with `scePad` handles and user.
-- The Bluetooth Manba stayed on an accessory path, not a reliable `scePad`
+- The Manba Bluetooth remained on an accessory path, not a reliable `scePad`
   pad.
 
-Places researched:
+Areas researched:
 
 - scan `/dev/ugen*`;
 - USB descriptors;
 - USB endpoints;
 - klog lines `Open Pad`;
 - klog lines `DEVICE_ADDED`;
-- physical MBus ids ending with `0x0300`;
-- virtual ids created by the payload;
+- physical MBus IDs ending with `0x0300`;
+- virtual IDs created by the payload;
 - `scePadInit`;
 - `scePadGetHandle`;
 - `scePadVirtualDeviceAddDevice`;
@@ -108,24 +108,24 @@ Places researched:
 
 What was used in the final USB patch:
 
-- disconnection/freeing of the physical official controller;
+- disconnection/release of the physical official controller;
 - detection when the official controller takes back the same user;
-- freeing of the Manba VDA when the official controller takes back this user.
+- release of the Manba VDA when the official controller takes back this user.
 
 What is not resolved:
 
-- bind the Bluetooth Manba as a real controller;
-- read real Bluetooth Manba input reports;
-- assign the Bluetooth Manba to a user like a normal `scePad` controller.
+- bind the Manba Bluetooth as a real controller;
+- read real Manba Bluetooth input reports;
+- assign the Manba Bluetooth to a user like a normal `scePad` controller.
 
  The Manba BT is seen by the PS5, but it remains blocked before the
-game input path.
+ game input path.
 
-Points found:
+Findings:
 
 - Confirmed Manba BT address:
   - normal: `98:b6:ea:bd:cd:58`
-  - reverse in memory: `58 cd bd ea b6 98`
+  - reversed in memory: `58 cd bd ea b6 98`
 - In `SceSysCore` / `SceMbusKmodEventPolling`, a Manba event was found:
   - Manba reverse hit around `+0x1ff30`
   - estimated event start around `+0x1ff10`
@@ -134,22 +134,22 @@ Points found:
   - `manba_hits_heap=0`
 - In `SceMbusHeap`, the official DualSense appears with its BT and its
   VID/PID, but the Manba does not have an equivalent pad entry.
-- The comparison of official event vs Manba event shows that the official event
+- The official event vs Manba event comparison shows that the official event
   carries BT + VID/PID together, while the Manba event carries the MAC but no
-  nearby Manba VID/PID. This points to a classification/promotion problem
-  from accessory to pad, not to a simple address patch.
+  nearby Manba VID/PID. This points to a classification/promotion problem from
+  accessory to pad, not to a simple address patch.
 - The attempts, and the tests
-  `KMOD_TO_HEAP … confirmed that these paths are not sufficient:
-  - ShellUI VID/PID patch alone;
-  - ShellUI SIG8 patch;
+  `KMOD_TO_HEAP … confirmed that these leads are not enough:
+  - VID/PID ShellUI patch alone;
+  - SIG8 ShellUI patch;
   - direct bind `0x190300`;
   - direct bind `0x30300`;
   - force `0x2030e` as pad;
   - fallback `0x2030e -> 0x190300`;
-  - ShellUI activation table `active20/user24/type28` with or without user;
+  - ShellUI table activation `active20/user24/type28` with or without user;
   - simple scans `/dev/hid` and `/dev/bluetooth_hid`.
-- Game tests show that `eboot.bin` has its own `libScePad` table:
-  the official controller is active there, but the Manba BT stays on the Shell/Cdlg/accessory side.
+- The game tests show that `eboot.bin` has its own `libScePad` table:
+  the official controller is active there, but the Manba BT remains on the Shell/Cdlg/accessory side.
 - The game calls `scePadRead`.
   ...
 
@@ -161,7 +161,7 @@ modules/PRX used by the official DualSense.
 ## Launch The Final Payload
 
 1. Start the payload listener on the PS5, port `9021`.
-2. Launch:
+2. Run:
 
 ```powershell
 .\Launch-GhostControl-ManbaV2-NBJr.ps1
@@ -174,14 +174,11 @@ Launch-GhostControl-ManbaV2-NBJr.bat
 ```
 
 3. Enter the PS5 IP.
-4. Launch 1/2/3 
-   1 : Kill old payload and reinject clean payload 
-   2:  Elf ghost  ( auto active )
-   3:  Kill only
+4. Make your choice 1/2/3 
+
 
 ## Where To Look For The Patches
 
-```
 The important areas:
 
 - `payload/controller_mamba.h`
@@ -195,9 +192,9 @@ The important areas:
 - `payload/gc_main.c`
   - Manba detection.
   - USB routing.
-  - Manba Switch Y axis correction after `nintendo_handle_packet()`.
-  - VDA freeing/recreation logic.
-  - detection of official controller taking back the same user.
+  - Manba Switch Y-axis correction after `nintendo_handle_packet()`.
+  - VDA release/recreation logic.
+  - detection of the official controller taking back the same user.
 - `payload/shellui_pad.c`
   - ShellUI/MBus functions to cut off a physical controller.
   - handle/user verification.
@@ -237,7 +234,7 @@ The correction must remain limited to the Manba recognized as `057e:2009`.
 
 ## Build
 
-The compilation uses the PS5 payload SDK environment…
+Compilation uses the PS5 payload SDK environment…
 
 Script used during the tests:
 
@@ -253,6 +250,6 @@ ELF/GhostControl-ManbaV2-NBJr-USB-Patch.elf
 
 ## Warning
 
-Research only for educational purposes. Use at your own risk. Tested only with my PS5 6.02 and Manba environment.
-I do not have tools, script or universal magic payload unfortunately for deeper analysis for support of other controllers or BT adaptation, I proceed step by step by step, it takes time ...
+Research only for educational purposes . Use at your own risk . Tested only with my PS5 6.02 and Manba environment.
+I unfortunately do not have tools, script or universal magic payload for deeper analysis for support of other controllers or BT adaptation, I proceed step by step, this takes time ...
 
